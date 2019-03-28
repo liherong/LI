@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.ss.dao.TrackModelMapper">
+
+    <!--
+        <cache/>
+        可以使用<cache/>开启mapper二级缓存，也可以使用@CacheNamespace注解在关联的XxxMapper接口
+        文件上启动二级缓存，两者只能选其一
+    -->
+
+    <!--查询跟踪信息-->
+    <select id="getTrackModel" resultMap="trackResultMap">
+        select
+        <include refid="trackColumns"/>
+        from t_track t,t_student s,sys_user u
+        where t.stu_number = s.stu_number
+        and s.consult_id = u.uid
+        <trim prefix="and" suffixOverrides="and">
+            <if test="stuName != '' and stuName != null">  <!--学生性名-->
+                s.stu_name like concat('%',#{stuName},'%') and
+            </if>
+            <if test="userName != '' and userName != null">  <!--咨询师姓名-->
+                u.nick like concat('%',#{userName},'%') and
+            </if>
+            <if test="trackWays != '' and trackWays != null">  <!--跟踪方式-->
+                t.track_ways like concat('%',#{trackWays},'%') and
+            </if>
+        </trim>
+        LIMIT #{start},#{end}
+    </select>
+
+    <!--查询条数-->
+    <select id="getTotal" resultType="java.lang.Integer">
+        select count(s.stu_number)
+        from t_track t,t_student s,sys_user u
+        where t.stu_number = s.stu_number
+        and s.consult_id = u.uid
+        <trim prefix="and" suffixOverrides="and">
+            <if test="stuName != '' and stuName != null">  <!--学生性名-->
+                s.stu_name like concat('%',#{stuName},'%') and
+            </if>
+            <if test="userName != '' and userName != null">  <!--咨询师姓名-->
+                u.nick like concat('%',#{userName},'%') and
+            </if>
+            <if test="trackWays != '' and trackWays != null">  <!--跟踪方式-->
+                t.track_ways like concat('%',#{trackWays},'%') and
+            </if>
+        </trim>
+    </select>
+
+    <!--查询所有咨询师-->
+    <select id="getUserNames" resultMap="userMap">
+        select nick from sys_user
+    </select>
+
+    <!--修改咨询师-->
+    <update id="updateNick" parameterType="java.util.List">
+        update t_student
+        set consult_id=(select uid from sys_user where nick=#{nick})
+        where stu_number in
+        <foreach collection="stuNumber" open="(" separator="," close=")" item="stuNumber">
+          #{stuNumber}
+        </foreach>
+    </update>
+
+    <!--修改学生状态（撤回简历）-->
+    <update id="updateStuStatus" parameterType="java.util.List">
+        update t_student set stu_status=0 where stu_number in
+        <foreach collection="stuNumber" open="(" separator="," close=")" item="item">
+            #{item}
+        </foreach>
+    </update>
+
+
+    <!--咨询师映射-->
+    <resultMap id="userMap" type="sysUser" autoMapping="true"/>
+
+    <!--跟踪信息表的映射-->
+    <resultMap id="trackResultMap" type="trackModel" autoMapping="true"/>
+
+    <sql id="trackColumns">
+      t.track_ways,t.track_time,t.track_status,t.track_next_time,t.track_predict_time,t.update_time,
+      s.stu_number,s.stu_name,s.stu_status,s.stu_source,s.stu_level,s.stu_phone_num,u.nick
+    </sql>
+
+
+</mapper>
